@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kotik — медкарта</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: clinical, calm, caring — a vet's chart that owners can actually read
+   IDEA: a clinic patient card clipped to a clipboard: status first, details folded
+   PICTURE: live bladder timer — hours since last emptying on an 8/12 h scale
+   COLOUR and TYPE: white paper, ink, deep clinic blue; amber/red only for alerts. Golos Text
+   LAYOUT: header strip, "now" panel (timer + today), alerts, then foldable sections */
+:root{color-scheme:light dark;
+--bg:light-dark(#f6f7f9,#11141a);--card:light-dark(#fff,#1a1f27);--ink:light-dark(#18202b,#e8ecf2);
+--mute:light-dark(#5b6676,#9aa5b5);--line:light-dark(#e1e5eb,#2b323d);--blue:light-dark(#1f4fbf,#7ea2ff);
+--blue2:light-dark(#e8eefc,#1c2740);--amb:light-dark(#a8640a,#f0b350);--amb2:light-dark(#fff4e0,#33270f);
+--red:light-dark(#b42318,#ff8a80);--red2:light-dark(#fdecea,#3a1b1a);--ok:light-dark(#1f7a4d,#6fd3a0);--ok2:light-dark(#e6f5ec,#15301f)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Golos Text",system-ui,sans-serif;overflow-x:clip}
+.wrap{max-width:1100px;margin:0 auto;padding:0 max(4vw,14px)}
+header{background:var(--blue);color:#fff;padding:22px 0 18px}
+header h1{margin:0;font-size:clamp(28px,5vw,40px);line-height:1.05;font-weight:700}
+.meta{display:flex;flex-wrap:wrap;gap:6px 8px;margin-top:12px}
+.chip{background:rgba(255,255,255,.16);border-radius:99px;padding:3px 11px;font-size:14px;white-space:nowrap}
+.chip.al{background:#fff;color:#b42318;font-weight:600}
+nav{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;gap:4px;overflow-x:auto;padding-block:6px}
+nav a{flex:none;color:var(--ink);text-decoration:none;font-size:14px;padding:8px 11px;border-radius:8px}
+nav a:hover,nav a:focus-visible{background:var(--blue2);outline:none}
+h2{font-size:22px;line-height:1.2;margin:34px 0 12px}
+h3{font-size:17px;margin:18px 0 6px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.now{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;margin-top:20px}
+.timer .lbl{color:var(--mute);font-size:14px}
+.big{font-size:clamp(46px,9vw,72px);font-weight:700;line-height:1;margin:6px 0 4px;font-variant-numeric:tabular-nums}
+.big small{font-size:.38em;font-weight:500;color:var(--mute)}
+.st{display:inline-block;font-weight:600;border-radius:8px;padding:4px 10px;margin:4px 0 12px}
+.st.ok{background:var(--ok2);color:var(--ok)}.st.amb{background:var(--amb2);color:var(--amb)}.st.red{background:var(--red2);color:var(--red)}
+.scale{position:relative;height:14px;border-radius:7px;background:linear-gradient(90deg,var(--ok2) 0 50%,var(--amb2) 50%);border:1px solid var(--line)}
+.scale i{position:absolute;top:-5px;width:4px;height:22px;border-radius:2px;background:var(--ink);transition:left .6s}
+.ticks{display:flex;justify-content:space-between;font-size:13px;color:var(--mute);margin-top:4px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px}
+input[type=datetime-local]{font:16px "Golos Text",sans-serif;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);min-height:44px}
+button{font:600 15px "Golos Text",sans-serif;min-height:44px;padding:0 16px;border-radius:9px;border:0;background:var(--blue);color:#fff;cursor:pointer}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.small{font-size:13px;color:var(--mute);margin-top:8px}
+ul.todo{list-style:none;padding:0;margin:8px 0 0}
+ul.todo li{padding:8px 0 8px 30px;border-bottom:1px solid var(--line);position:relative}
+ul.todo li:last-child{border:0}
+ul.todo li::before{content:"";position:absolute;left:2px;top:12px;width:16px;height:16px;border:2px solid var(--blue);border-radius:4px}
+ul.todo li.done{color:var(--mute);text-decoration:line-through}
+ul.todo li.done::before{background:var(--blue)}
+ul.todo li.hot::before{border-color:var(--red)}
+.phone{display:flex;justify-content:space-between;gap:10px;align-items:center;background:var(--red2);border-radius:10px;padding:10px 12px;margin-top:12px}
+.phone .tel{color:var(--red);font-size:18px}
+a.tel{font-weight:700;white-space:nowrap;color:var(--blue);text-decoration:none;border-bottom:2px solid currentColor;display:inline-block;padding:4px 0}
+a.map{color:var(--blue)}
+.alerts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:10px}
+.alerts .card{border-left:4px solid var(--red);padding:14px 16px}
+.alerts h3{margin:0 0 4px;color:var(--red);font-size:16px}
+.alerts p{margin:0;font-size:15px}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;vertical-align:top;padding:9px 10px;border-bottom:1px solid var(--line)}
+th{font-size:13px;color:var(--mute);font-weight:600}
+td b{white-space:nowrap}
+.tag{display:inline-block;font-size:12px;font-weight:600;border-radius:6px;padding:1px 7px;white-space:nowrap}
+.tag.buy{background:var(--amb2);color:var(--amb)}.tag.on{background:var(--ok2);color:var(--ok)}.tag.q{background:var(--blue2);color:var(--blue)}
+.up{color:var(--red);font-weight:600}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;margin:8px 0}
+summary{cursor:pointer;list-style:none;padding:14px 44px 14px 16px;font-weight:600;position:relative;min-height:44px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"";position:absolute;right:18px;top:50%;width:9px;height:9px;border-right:2px solid var(--mute);border-bottom:2px solid var(--mute);transform:translateY(-70%) rotate(45deg);transition:transform .2s}
+details[open]>summary::after{transform:translateY(-30%) rotate(-135deg)}
+summary span{font-weight:400;color:var(--mute);font-size:14px;margin-left:6px}
+.in{padding:0 16px 16px}
+.in p,.in li{font-size:15px}
+.lead{font-size:17px;margin:0 0 10px}
+.dx{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:10px}
+.dx .card p{margin:4px 0 0;font-size:15px}
+.k{font-size:13px;color:var(--mute)}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:8px;margin:10px 0}
+.steps div{background:var(--blue2);border-radius:10px;padding:10px 12px;font-size:14px}
+.steps b{display:block;color:var(--blue)}
+.scroll{overflow-x:auto}
+footer{color:var(--mute);font-size:13px;padding:30px 0 40px}
+@media(max-width:760px){.now{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){table{font-size:14px}.stack thead{display:none}.stack tr{display:grid;padding-block:8px;border-bottom:1px solid var(--line)}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:7.5em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:7em;margin-inline-start:-7.5em;color:var(--mute);font-size:13px;white-space:normal}.stack td:empty{display:none}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+@media print{nav,.row,.small.ls{display:none}body{background:#fff}header{background:#fff;color:#000;border-bottom:3px solid #1f4fbf}.chip{border:1px solid #ccc}details,.card{break-inside:avoid-page}summary::after{display:none}h2{break-after:avoid}}
+</style>
+<script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
+</head>
+<body>
+<header><div class="wrap">
+<h1>Kotik — медкарта</h1>
+<div class="meta">
+<span class="chip">кот, кастрат, 12 лет</span><span class="chip">7,9 кг → цель 6 кг</span>
+<span class="chip al">Аллергия: курица</span><span class="chip">почки: следить</span><span class="chip">обновлено 18.11.2026</span>
+</div></div></header>
+
+<nav><div class="wrap scroll">
+<a href="#now">Сейчас</a><a href="#urgent">Срочно</a><a href="#meds">Лекарства</a><a href="#dx">Диагноз</a><a href="#care">Уход</a><a href="#labs">Анализы</a><a href="#history">Хронология</a><a href="#prognosis">Прогноз</a><a href="#questions">Вопросы</a><a href="#contacts">Контакты</a>
+</div></nav>
+
+<main class="wrap">
+<section id="now" class="now">
+<div class="card timer">
+<div class="lbl">С последнего слива мочи прошло</div>
+<div class="big" id="hrs">—</div>
+<div class="st" id="st">—</div>
+<div class="scale"><i id="mk" style="left:0"></i></div>
+<div class="ticks"><span>0 ч</span><span>12 ч</span><span>24 ч</span></div>
+<div class="row">
+<label class="k" for="last">Последний слив</label>
+<input type="datetime-local" id="last" value="2026-11-17T20:00">
+<button id="nowbtn" type="button">Слили сейчас</button>
+</div>
+<div class="small">Пока сам не мочится, пузырь желательно сливать в клинике каждые 12 ч; по словам врачей, допустимо до 24 ч. Время слива запоминается только в этом браузере.</div>
+</div>
+
+<div class="card">
+<h3 style="margin-top:0">Главное на сегодня, 18.11</h3>
+<ul class="todo">
+<li>Слить мочу в клинике (последний раз 17.11 в 20:00)</li>
+<li>Купить <b>Нейромидин</b> (рецепт до 27.11) и начать: 0,5 мл п/к 1 р/д, 14 дней</li>
+<li>Купить <b>Cerukal</b> (нужен ли рецепт?) и уточнить дозу</li>
+<li>Спросить про постоянный катетер на несколько дней и про празозин</li>
+<li>Записывать: время слива, мокрый ли лоток, писает ли при дефекации</li>
+</ul>
+<div class="phone"><span>Dr. Beinerts, 24/7, Ģertrūdes 101</span><a class="tel" href="tel:+37167288539">6728 8539</a></div>
+</div>
+</section>
+
+<h2 id="urgent">Срочно в клинику, не ждать утра</h2>
+<div class="alerts">
+<div class="card"><h3>Моча</h3><p>Больше 24 ч после слива, а сам не пописал; часто тужится без результата; твёрдый болезненный живот; кровь, хлопья, мутная моча</p></div>
+<div class="card"><h3>Лапы и спина</h3><p>Лапы снова отказали или заметно слабее; нет реакции на щипок пальцев; кричит от боли</p></div>
+<div class="card"><h3>Лекарства</h3><p>Рвота, отказ от еды, чёрный стул; отёк морды после укола; слишком сонный, не встаёт. На Нейромидине: сильное слюнотечение, понос, тяжёлое дыхание</p></div>
+<div class="card"><h3>Глаза</h3><p>Натыкается на предметы; зрачки широкие и не сужаются на яркий свет (проверка фонариком); зрачки разного размера</p></div>
+<div class="card"><h3>Дыхание</h3><p>Открытым ртом или с усилием; больше 40 вдохов в минуту в покое; бледные или синюшные дёсны</p></div>
+</div>
+<p class="small">Норма дома: во сне меньше 30 вдохов в минуту; десна после нажатия розовеет быстрее 2 с. Тёмные пятна на дёснах — пигмент.</p>
+
+<h2 id="meds">Лекарства сейчас</h2>
+<div class="card" style="padding:4px 8px">
+<table class="stack">
+<thead><tr><th>Что</th><th>Как</th><th>Срок</th><th>Зачем</th></tr></thead>
+<tbody>
+<tr><td><b>Нейромидин</b> 15 мг/мл <span class="tag buy">купить</span></td><td><b>0,5 мл п/к</b>, 1 р/д (7,5 мг)</td><td>14 дней с первого укола</td><td>Пузырь лучше сокращается, помогает лапам и хвосту</td></tr>
+<tr><td><b>Cerukal</b> (метоклопрамид) <span class="tag buy">купить</span></td><td>Доза: <span class="tag q">уточнить</span>. Даны только шприцы</td><td>?</td><td>От тошноты, в т.ч. от Нейромидина; пузырь не лечит</td></tr>
+<tr><td><b>Габапентин</b> 100 мг <span class="tag on">даём</span></td><td>1 капсула с едой; сейчас вечером и утром (до 4 р/д)</td><td>3–4 нед. с 10.11</td><td>Нервная боль</td></tr>
+<tr><td><b>Успокоительное</b></td><td>Название и доза: <span class="tag q">уточнить</span></td><td>?</td><td>Покой в вольере</td></tr>
+<tr><td><b>Слив мочи катетером</b></td><td>В клинике: вставили, слили, вынули</td><td>Пока не мочится сам</td><td>Руками не сцеживается</td></tr>
+<tr><td><b>Конус</b></td><td>Носить постоянно</td><td>Снимать ли: <span class="tag q">уточнить</span></td><td>Стоял из-за катетера</td></tr>
+</tbody></table>
+</div>
+<details><summary>Нейромидин: подробности и побочки</summary><div class="in">
+<p>Ипидакрин усиливает передачу сигнала от нерва к мышце. Доза ≈0,95 мг/кг. Рецепт AB 784688, Bišu dārzs, J. Buholtova, 17.11, действует до 27.11.</p>
+<p><b>Следить:</b> слюнотечение, рвота, понос, редкий пульс, вялость, тяжёлое дыхание. При них — звонить врачу.</p>
+<p>Вопрос: нужен ли вместе с ним празозин, чтобы расслабить выход из пузыря.</p>
+</div></details>
+<details><summary>Завершённые назначения <span>Synulox, Meloxidyl, Enteroferm, B12, постоянный катетер</span></summary><div class="in">
+<table class="stack"><thead><tr><th>Что</th><th>Как</th><th>Когда</th><th>Заметки</th></tr></thead><tbody>
+<tr><td><b>Synulox RTU</b></td><td>0,8 мл п/к 1 р/д</td><td>11–16.11</td><td>По инструкции ≈0,4 мл на 7,9 кг, назначено вдвое больше. Не продлевать (Elina, 12.11). Хозяева хотели остановить после ~3 уколов</td></tr>
+<tr><td><b>Meloxidyl</b></td><td>На 7,9 кг, после еды, 1 р/д</td><td>11–13.11</td><td>Хозяева против из-за почек</td></tr>
+<tr><td><b>Enteroferm gel</b></td><td>1 деление 1 р/д</td><td>11–17.11</td><td>Пробиотик, без курицы</td></tr>
+<tr><td><b>Витамин B12</b></td><td>0,8 мл укол</td><td>16.11</td><td>Будет ли курс — уточнить</td></tr>
+<tr><td><b>Постоянный катетер</b></td><td>Силиконовый, без мешка</td><td>11–16.11</td><td>Снят в Dr. Beinerts</td></tr>
+</tbody></table></div></details>
+
+<h2 id="dx">Диагноз</h2>
+<p class="lead">Ушиб спинного мозга на уровне L4–L5 от «выстрелившего» ядра диска, <b>без сдавления — операция не нужна</b>. Покой 4–6 недель от 10.11, до 8–22.12.</p>
+<div class="dx">
+<div class="card"><div class="k">Основной</div><b>ANNPE L4–L5</b><p>Острая некомпрессионная экструзия ядра диска</p></div>
+<div class="card"><div class="k">Дифференциальный</div><b>Сосудистая миелопатия L4–L5</b><p>«Инсульт» спинного мозга (ФКЭ)</p></div>
+<div class="card"><div class="k">Отдельно: глаза</div><b>Нужен офтальмолог</b><p>10.11 зрачки не реагировали на свет, 14.11 норма, 18.11 утром на время широкие</p></div>
+</div>
+<details><summary>Для врача, МРТ, осмотр <span>SensoVet, 10.11, DVM Ņ. Turbins</span></summary><div class="in">
+<p><b>Для врача:</b> «NHNP ekstrūzija L4–L5, bez mielokompresijas; diferenciāli – vaskulāra mielopātija L4–L5.»</p>
+<table class="stack"><thead><tr><th></th><th>Latviešu</th><th>English</th></tr></thead><tbody>
+<tr><td>Основной</td><td>NHNP ekstrūzija L4–L5 skriemeļstarpas apvidū</td><td>Intervertebral disc extrusion – lumbar (ANNPE L4–L5)</td></tr>
+<tr><td>Дифф.</td><td>Aizdomas uz insultu L4–L5 skriemeļstarpas apvidū</td><td>Vascular myelopathy</td></tr>
+</tbody></table>
+<h3>МРТ (только поясница)</h3>
+<p>Диски хорошо увлажнены; у L4–L5 уменьшен объём ядра дорсально; компрессии нет; в спинном мозге на L4–L5 зона T2/STIR гипер-, T1 гипоинтенсивная, без выраженного отёка и масс-эффекта.</p>
+<h3>Неврология 10.11</h3>
+<p>Ходит, атаксия задних лап; проприоцепция норма; спинальные рефлексы задних лап снижены с обеих сторон; анальный рефлекс снижен, хвост слабый, сам не мочится.</p>
+<h3>Глаза</h3>
+<p>10.11 (до седации) с обеих сторон зрачки на свет не реагировали, снижен menace. 14.11 дома сужаются, вероятно, тогда был стресс или боль. 18.11 утром на время широкие, потом норма. Офтальмолог всё равно нужен: menace, слезятся глаза, иногда плохо видит.</p>
+<h3>Анестезия 10.11</h3>
+<p>Дексмедетомидин 5 мкг/кг в/м, пропофол 2 мг/кг в/в, изофлуран 1,5%.</p>
+</div></details>
+
+<h2 id="care">Уход дома</h2>
+<details open><summary>Моча <span>пока не мочится сам</span></summary><div class="in"><ul>
+<li><b>Сливать в клинике желательно каждые 12 ч</b>; по словам врачей, допустимо до 24 ч. Руками не сцеживается, сами хозяева не сливают.</li>
+<li>Долго полный пузырь растягивается и потом хуже сокращается, поэтому лучше не затягивать.</li>
+<li>Следить: мокрый лоток или пелёнки, писает ли при дефекации. Любые капли — хороший знак, сказать врачу.</li>
+<li>Разовая катетеризация: мягкий тонкий катетер, стерильно. Уточнять, нужна ли седация. Если дольше 2–3 дней — обсудить постоянный катетер или празозин.</li>
+<li>Раздражение уретры: кровь в моче, частые попытки, лижет под хвостом, кричит → сообщить врачу.</li>
+<li>Шерсть под хвостом держать сухой и чистой.</li>
+</ul></div></details>
+<details><summary>Покой <span>вольер, 4–6 недель</span></summary><div class="in"><ul>
+<li>Вольер ~1×1 м с крышей: низкий лоток, вода, еда, нескользкая подстилка.</li>
+<li>Без лестниц, прыжков и игр с удочкой или лазером.</li>
+<li>Первые 2 недели — выходы под присмотром по 3–5 мин, по ковру, в комнате без мебели для прыжков.</li>
+<li>Носить: одна рука под грудь, другая под таз, спина не провисает.</li>
+</ul></div></details>
+<details><summary>Конус, еда, питьё</summary><div class="in"><ul>
+<li>Миска уже отверстия конуса (~10 см), высокая и тяжёлая, вода до краёв; можно приподнять на 5–10 см.</li>
+<li>Не пьёт — шприц без иглы за щёку, больше влажного корма с водой.</li>
+<li>Замена конуса на жёсткий с петлями на ошейнике — сначала согласовать с клиникой.</li>
+</ul></div></details>
+<details><summary>Корм и вес <span>7,9 → 6 кг, без курицы</span></summary><div class="in"><ul>
+<li>Худеть ~1% (≈80 г) в неделю. Не голодать — риск липидоза печени.</li>
+<li>Без курицы и птицы: гидролизованный гипоаллергенный или корм для похудения на рыбе. В составе искать: chicken, poultry, vista, mājputni.</li>
+<li>Не подходит Virbac HPM Advanced Kidney & Joint (почечный, калорийный, снижает фосфор).</li>
+<li>Согласовать с врачом, переводить за 5–7 дней; учесть pH мочи 7,5.</li>
+</ul></div></details>
+
+<h2 id="labs">Анализы</h2>
+<p class="lead">Опасного нет: почки, электролиты, сахар в норме, острого воспаления нет. Моча к 2.11 и 5.11 чистая, белок не теряет; минус — pH 7,5.</p>
+<details><summary>Кровь <span>Dr. Beinerts, 10.11</span></summary><div class="in scroll">
+<table class="stack"><thead><tr><th>Показатель</th><th>Результат</th><th>Норма</th><th>Что значит</th></tr></thead><tbody>
+<tr><td>CK</td><td class="up">1268</td><td>до 314</td><td>×4: мышцы при судороге</td></tr>
+<tr><td>AST / ALT</td><td class="up">100 / 174</td><td></td><td>Слегка повышены, частично из мышц</td></tr>
+<tr><td>Глобулины, A/G</td><td class="up">54; 0,6</td><td></td><td>Хроническое воспаление, возможно зубы</td></tr>
+<tr><td>Фосфор</td><td class="up">0,90</td><td></td><td>Низкий → почечная диета не подходит</td></tr>
+<tr><td>Амилаза</td><td>1691</td><td></td><td></td></tr>
+<tr><td>PLT</td><td>145</td><td></td><td>Скорее слипание в пробирке</td></tr>
+<tr><td>HGB</td><td>16,5</td><td></td><td></td></tr>
+<tr><td>Креатинин, мочевина, SDMA</td><td>норма</td><td></td><td>Почки в порядке</td></tr>
+<tr><td>Глюкоза</td><td>норма</td><td></td><td></td></tr>
+<tr><td>Na / K / Cl</td><td>159 / 3,6 / 119</td><td>150–165 / 3,5–5,8 / 112–129</td><td>Норма; калий у нижней границы — перепроверить</td></tr>
+<tr><td>fSAA</td><td>2,52 мг/л</td><td></td><td>Острого воспаления нет</td></tr>
+<tr><td>Давление</td><td>норма</td><td></td><td>Гипертония как причина глаз маловероятна</td></tr>
+</tbody></table>
+<p class="small">Рентген: кости в порядке, пузырь полный, сердце оценить не удалось. Не сдавали: T4, proBNP / УЗИ сердца.</p>
+</div></details>
+<details><summary>Моча <span>E. Gulbja Laboratorija, 27.10 · 2.11 · 5.11</span></summary><div class="in scroll">
+<table><thead><tr><th>Показатель</th><th>27.10</th><th>2.11</th><th>5.11</th><th>Комментарий</th></tr></thead><tbody>
+<tr><td>Удельный вес</td><td>1,028</td><td>1,030</td><td>1,028</td><td>Умеренно; идеал &gt;1,035</td></tr>
+<tr><td>pH</td><td>7,0</td><td class="up">7,5</td><td class="up">7,5</td><td>Норма 5,5–7,0</td></tr>
+<tr><td>UPC</td><td>≈0,12</td><td>≈0,12</td><td>≈0,10</td><td>Норма (&lt;0,2)</td></tr>
+<tr><td>Лейкоциты, микроскопия</td><td>7</td><td>2</td><td>4</td><td>Норма (полоска 500 — ложная)</td></tr>
+<tr><td>Эритроциты</td><td class="up">62</td><td>2</td><td>—</td><td>27.10 повышены</td></tr>
+<tr><td>Бактерии</td><td class="up">++</td><td>—</td><td>—</td><td>Возможно, грязная проба</td></tr>
+<tr><td>Кристаллы</td><td>—</td><td>—</td><td>—</td><td>Нет</td></tr>
+<tr><td>Кетоны</td><td>&lt;0,5</td><td>&lt;0,5</td><td>0,5</td><td>Следы, если мало ел</td></tr>
+</tbody></table>
+<p class="small">Нитриты, глюкоза, билирубин — норма. Методы лаборатории человеческие; креатинин мочи ≠ креатинин крови.</p>
+</div></details>
+
+<h2 id="history">Хронология</h2>
+<details><summary>9.11 – 18.11 <span>по дням</span></summary><div class="in">
+<table class="stack"><thead><tr><th>Когда</th><th>Что</th></tr></thead><tbody>
+<tr><td><b>9.11, ~21:00</b></td><td>Вылизывал живот, вскрикнул, задние лапы свело и отказали; потом частично вернулись. С этого момента сам не мочится</td></tr>
+<tr><td><b>10.11, 13:00</b></td><td>Dr. Beinerts: кровь, электролиты, SDMA, рентген (полный пузырь)</td></tr>
+<tr><td><b>10.11, 15:05</b></td><td>SensoVet: невролог, МРТ под анестезией, Рингер, пузырь опорожнили. Зрачки на свет не сужались (до седации)</td></tr>
+<tr><td><b>10.11, вечер</b></td><td>Лёгкий хрип после интубации, дёсны розовые</td></tr>
+<tr><td><b>11.11</b></td><td>Dr. Beinerts: постоянный катетер без мешка, антибиотик, мелоксикам, пробиотик, конус</td></tr>
+<tr><td><b>12.11</b></td><td>Катетер силиконовый; Elina: можно до 16.11; Synulox строго по курсу</td></tr>
+<tr><td><b>14.11</b></td><td>Зрачки на свету сужаются</td></tr>
+<tr><td><b>16.11, 18:30</b></td><td>Катетер снят; B12 0,8 мл; дальше успокоительное и габапентин</td></tr>
+<tr><td><b>17.11, вечер</b></td><td>Сам не пописал (немного при дефекации). Bišu dārzs: рентген — пузырь полный, руками не сцедили → слили катетером ~20:00. Рецепт на Нейромидин, шприцы для Cerukal</td></tr>
+<tr><td><b>17–18.11</b></td><td>Габапентин на ночь и в 9:00</td></tr>
+<tr><td><b>18.11, утро</b></td><td>Зрачки на время широкие, к 11:10 нормальные</td></tr>
+<tr><td><b>18.11, 11:05</b></td><td>Последний слив был 17.11 в 20:00, сегодня слить. Нейромидин и Cerukal ещё не куплены</td></tr>
+</tbody></table></div></details>
+
+<h2 id="prognosis">Прогноз</h2>
+<p class="lead">Хороший: восстанавливаются около 80–90% кошек. Kotik ходит сам, его случай легче. Моча обычно восстанавливается позже ходьбы.</p>
+<details><summary>Этапы и данные исследований</summary><div class="in">
+<div class="steps">
+<div><b>Дни 1–3</b>Стабилизация, может «плавать»</div>
+<div><b>1–2 недели</b>Увереннее походка, сильнее хвост, может начать мочиться</div>
+<div><b>2–4 недели</b>Почти нормальная ходьба, моча обычно восстанавливается</div>
+<div><b>4–8 недель</b>Максимум; лёгкая шаткость может остаться</div>
+</div>
+<table class="stack"><thead><tr><th>Диагноз</th><th>Снова ходят</th><th>Хороший исход</th><th>Источник</th></tr></thead><tbody>
+<tr><td>ANNPE</td><td>17 дней (6–21)</td><td>~90%</td><td>JFMS 2017, 11 кошек</td></tr>
+<tr><td>ФКЭ</td><td>3,5 дня (3–19)</td><td>~80%</td><td>JFMS 2013, 19 кошек</td></tr>
+</tbody></table>
+<p>Хорошие знаки: сам писает, хвост поднимается. Плохой: за 2 недели нет улучшения → неврологу. У собак строгий покой не влиял на исход (JVIM 2025); для кошек данных нет.</p>
+</div></details>
+
+<h2 id="questions">Вопросы к врачам</h2>
+<details open><summary>Ветеринару (Dr. Beinerts / Bišu dārzs)</summary><div class="in"><ul>
+<li><b>Слив:</b> сколько раз в день? Седация каждый раз? Можно ли постоянный катетер на несколько дней, пока не подействует Нейромидин?</li>
+<li><b>Празозин</b> — нужен ли, раз руками не сцеживается?</li>
+<li><b>Cerukal:</b> нужен ли рецепт, доза, сколько раз и дней (при почках дозу снижают)?</li>
+<li><b>Нейромидин:</b> сделают ли первый укол или покажут, как колоть?</li>
+<li>Проверить реакцию зрачков на свет.</li>
+<li>Брали ли анализ или посев мочи 17.11?</li>
+<li>Какое успокоительное и доза; не слишком ли сонный с габапентином? B12 — будет ли курс?</li>
+<li>Габапентин — доза с учётом почек?</li>
+<li>pH мочи 7,5 — менять ли корм? Снимать ли конус?</li>
+</ul></div></details>
+<details><summary>Неврологу и офтальмологу</summary><div class="in"><ul>
+<li>Сообщить неврологу: после снятия катетера не мочится сам, назначен Нейромидин. Празозин? Сколько можно ходить? Обезболивание, корм без курицы.</li>
+<li>Зрачки: 10.11 не реагировали, 14.11 норма, 18.11 на время широкие. Причина? Что проверить?</li>
+<li>Menace, слезятся глаза, иногда плохо видит — нужна ли МРТ головы?</li>
+</ul></div></details>
+<details><summary>Позже <span>анализы, сердце, зубы</span></summary><div class="in"><ul>
+<li>Анализы: T4, калий, фосфор, креатинин/SDMA после курса лекарств.</li>
+<li>Перед любым наркозом — сердце (УЗИ или proBNP).</li>
+<li>Зубы: повышенные глобулины могут быть от них.</li>
+</ul></div></details>
+
+<h2 id="contacts">Контакты</h2>
+<div class="card" style="padding:4px 8px">
+<table class="stack"><thead><tr><th>Клиника</th><th>Телефон</th><th>Адрес</th><th>Для чего</th></tr></thead><tbody>
+<tr><td><b>Dr. Beinerts</b></td><td><a class="tel" href="tel:+37167288539">6728 8539</a> (24/7)</td><td><a class="map" href="https://www.google.com/maps/search/?api=1&query=Ģertrūdes+iela+101,+Riga" target="_blank" rel="noopener">Ģertrūdes iela 101</a></td><td>Рядом с домом; Elina Tastandina</td></tr>
+<tr><td><b>Bišu dārzs</b></td><td><a class="tel" href="tel:+37167441566">6744 1566</a></td><td><a class="map" href="https://www.google.com/maps/search/?api=1&query=Paula+Lejiņa+5,+Riga" target="_blank" rel="noopener">Paula Lejiņa 5</a></td><td>Jana Buholtova, слив 17.11, рецепт</td></tr>
+<tr><td><b>SensoVet</b></td><td><a class="tel" href="tel:+37167600109">6760 0109</a></td><td><a class="map" href="https://www.google.com/maps/search/?api=1&query=Vienības+gatve+109,+Riga" target="_blank" rel="noopener">Vienības gatve 109</a></td><td>Невролог Ņ. Turbins, МРТ</td></tr>
+<tr><td><b>Vetklīnika24</b></td><td><a class="tel" href="tel:+37161112345">6111 2345</a></td><td><a class="map" href="https://www.google.com/maps/search/?api=1&query=Dzelzavas+15,+Riga" target="_blank" rel="noopener">Dzelzavas 15</a></td><td>Запасная ночная</td></tr>
+<tr><td><b>E. Gulbja Lab.</b></td><td><a class="tel" href="tel:+37167545052">6754 5052</a></td><td><a class="map" href="https://www.google.com/maps/search/?api=1&query=Brīvības+gatve+366,+Riga" target="_blank" rel="noopener">Brīvības gatve 366</a></td><td>Анализы мочи</td></tr>
+</tbody></table></div>
+<p class="small">Номер нажимается для звонка, адрес открывает карту. Код Латвии +371.</p>
+<p class="small">Офтальмологи: проф. L. Kovaļčuka (PetCity, LBTU); dr. L. Aveniņa (DrVet); dr. A. Oksa-Minaļto (Ķengaraga veterinārā ambulance).</p>
+</main>
+<footer class="wrap">Kotik — медкарта · хозяйка Лера, Рига · обновлено 18.11.2026</footer>
+
+<script>{
+const inp=document.getElementById('last'),hrs=document.getElementById('hrs'),st=document.getElementById('st'),mk=document.getElementById('mk');
+const KEY='kotik-last-void';
+try{const v=localStorage.getItem(KEY);if(v)inp.value=v}catch(e){}
+const pad=n=>String(n).padStart(2,'0');
+const draw=()=>{
+  const t=new Date(inp.value);if(isNaN(t)){hrs.textContent='—';return}
+  const h=(Date.now()-t)/36e5,H=Math.max(0,h);
+  hrs.innerHTML=Math.floor(H)+'<small> ч </small>'+pad(Math.floor(H%1*60))+'<small> мин</small>';
+  mk.style.left='calc('+Math.min(H/24,1)*100+'% - 2px)';
+  st.className='st '+(H<12?'ok':H<24?'amb':'red');
+  st.textContent=H<12?'В норме':H<24?'Желательно слить':'Больше 24 ч — в клинику';
+};
+const save=()=>{try{localStorage.setItem(KEY,inp.value)}catch(e){}draw()};
+inp.addEventListener('change',save);
+document.getElementById('nowbtn').addEventListener('click',()=>{const d=new Date();inp.value=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());save()});
+draw();setInterval(draw,30000);
+}</script>
+</body>
+</html>
